@@ -38,9 +38,10 @@ type UserLimitInfo struct {
 	OverLimit         bool
 }
 
-func AddLimiter(nodetype string, tag string, users []panel.UserInfo, aliveList map[int]int) *Limiter {
+func AddLimiter(nodetype string, tag string, users []panel.UserInfo, aliveList map[int]int, nodeSpeedLimit int) *Limiter {
 	l := &Limiter{
 		Nodetype:      nodetype,
+		SpeedLimit:    nodeSpeedLimit,
 		UserOnlineIP:  new(sync.Map),
 		UserLimitInfo: new(sync.Map),
 		SpeedLimiter:  new(sync.Map),

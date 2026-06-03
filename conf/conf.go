@@ -28,6 +28,7 @@ type NodeConfig struct {
 	Key        string `mapstructure:"ApiKey"`
 	Timeout    int    `mapstructure:"Timeout"`
 	RetryCount *int   `mapstructure:"RetryCount"`
+	SpeedLimit int    `mapstructure:"SpeedLimit"`
 }
 
 func New() *Conf {
