@@ -23,12 +23,13 @@ type LogConfig struct {
 }
 
 type NodeConfig struct {
-	APIHost    string `mapstructure:"ApiHost"`
-	NodeID     int    `mapstructure:"NodeID"`
-	Key        string `mapstructure:"ApiKey"`
-	Timeout    int    `mapstructure:"Timeout"`
-	RetryCount *int   `mapstructure:"RetryCount"`
-	SpeedLimit int    `mapstructure:"SpeedLimit"`
+	APIHost              string `mapstructure:"ApiHost"`
+	NodeID               int    `mapstructure:"NodeID"`
+	Key                  string `mapstructure:"ApiKey"`
+	Timeout              int    `mapstructure:"Timeout"`
+	RetryCount           *int   `mapstructure:"RetryCount"`
+	GlobalSpeedLimitMbps int    `mapstructure:"GlobalSpeedLimitMbps"`
+	SpeedLimit           int    `mapstructure:"SpeedLimit"`
 }
 
 func New() *Conf {
@@ -58,6 +59,9 @@ func (p *Conf) LoadFromPath(filePath string) error {
 	for i := range p.NodeConfigs {
 		if p.NodeConfigs[i].RetryCount == nil {
 			p.NodeConfigs[i].RetryCount = intPtr(DefaultNodeRetryCount)
+		}
+		if p.NodeConfigs[i].GlobalSpeedLimitMbps == 0 && p.NodeConfigs[i].SpeedLimit > 0 {
+			p.NodeConfigs[i].GlobalSpeedLimitMbps = p.NodeConfigs[i].SpeedLimit
 		}
 	}
 	return nil

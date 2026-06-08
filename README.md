@@ -9,12 +9,40 @@ A v2board backend base on moddified xray-core.
 ### 一键安装
 
 ```
-wget -N https://raw.githubusercontent.com/wyx2685/v2node/master/script/install.sh && bash install.sh
+wget -N https://raw.githubusercontent.com/LOVEYIKANUOSI/v2node/main/script/install.sh && bash install.sh
+```
+
+如果你后面又 fork 到别的仓库，也可以显式指定来源仓库：
+
+```bash
+export V2NODE_GITHUB_REPO="yourname/v2node"
+export V2NODE_GITHUB_BRANCH="main"
+wget -N https://raw.githubusercontent.com/yourname/v2node/main/script/install.sh && bash install.sh
 ```
 
 ## 构建
 ``` bash
 GOEXPERIMENT=jsonv2 go build -v -o build_assets/v2node -trimpath -ldflags "-X 'github.com/wyx2685/v2node/cmd.version=$version' -s -w -buildid="
+```
+
+## 统一限速
+
+可以在节点配置里增加 `GlobalSpeedLimitMbps`，给该节点下的所有用户设置统一的最大带宽上限，单位是 Mbps。
+
+为兼容旧配置，也仍然支持 `SpeedLimit`；如果两个字段同时存在，程序优先使用 `GlobalSpeedLimitMbps`。
+
+```json
+{
+  "Nodes": [
+    {
+      "ApiHost": "https://example.com/",
+      "NodeID": 1,
+      "ApiKey": "your-api-key",
+      "Timeout": 15,
+      "GlobalSpeedLimitMbps": 30
+    }
+  ]
+}
 ```
 
 ## Stars 增长记录

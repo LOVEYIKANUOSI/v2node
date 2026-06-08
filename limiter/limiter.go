@@ -38,10 +38,10 @@ type UserLimitInfo struct {
 	OverLimit         bool
 }
 
-func AddLimiter(nodetype string, tag string, users []panel.UserInfo, aliveList map[int]int, nodeSpeedLimit int) *Limiter {
+func AddLimiter(nodetype string, tag string, speedLimit int, users []panel.UserInfo, aliveList map[int]int) *Limiter {
 	l := &Limiter{
 		Nodetype:      nodetype,
-		SpeedLimit:    nodeSpeedLimit,
+		SpeedLimit:    speedLimit,
 		UserOnlineIP:  new(sync.Map),
 		UserLimitInfo: new(sync.Map),
 		SpeedLimiter:  new(sync.Map),
@@ -60,7 +60,11 @@ func AddLimiter(nodetype string, tag string, users []panel.UserInfo, aliveList m
 			userLimit.DeviceLimit = users[i].DeviceLimit
 		}
 		userLimit.OverLimit = false
-		l.UserLimitInfo.Store(format.UserTag(tag, users[i].Uuid), userLimit)
+		userTag := format.UserTag(tag, users[i].Uuid)
+		l.UserLimitInfo.Store(userTag, userLimit)
+		if limit := int64(determineSpeedLimit(l.SpeedLimit, users[i].SpeedLimit)) * 1000000 / 8; limit > 0 {
+			l.SpeedLimiter.Store(userTag, rate.NewDynamicBucket(limit))
+		}
 	}
 	l.UUIDtoUID = uuidmap
 	limitLock.Lock()
