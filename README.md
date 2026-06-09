@@ -28,6 +28,25 @@ wget -N https://raw.githubusercontent.com/yourname/v2node/main/script/install.sh
 export V2NODE_RELEASE_REPO="wyx2685/v2node"
 ```
 
+## Fork 自己发版
+
+这个仓库已经包含适用于 fork 的 GitHub Actions 发版流程。
+
+你只需要在 GitHub 仓库里推送一个 `v*` 标签，例如：
+
+```bash
+git tag v0.4.2
+git push origin v0.4.2
+```
+
+工作流会自动：
+
+- 构建各平台压缩包
+- 创建对应的 GitHub Release
+- 上传 `v2node-linux-64.zip` 等安装脚本需要的二进制文件
+
+这样后续安装脚本也可以直接从你自己的 fork Release 下载，而不必再回退到上游仓库。
+
 ## 构建
 ``` bash
 GOEXPERIMENT=jsonv2 go build -v -o build_assets/v2node -trimpath -ldflags "-X 'github.com/wyx2685/v2node/cmd.version=$version' -s -w -buildid="
