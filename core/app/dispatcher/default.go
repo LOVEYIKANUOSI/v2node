@@ -93,8 +93,8 @@ func (r *cachedReader) Interrupt() {
 		r.cache = buf.ReleaseMulti(r.cache)
 	}
 	r.Unlock()
-	if p, ok := r.reader.(*pipe.Reader); ok {
-		p.Interrupt()
+	if interrupter, ok := r.reader.(interface{ Interrupt() }); ok {
+		interrupter.Interrupt()
 	}
 }
 
@@ -209,7 +209,7 @@ func (d *DefaultDispatcher) getLink(ctx context.Context) (*transport.Link, *tran
 		if w != nil {
 			sessionInbound.CanSpliceCopy = 3
 			inboundLink.Writer = rate.NewRateLimitWriter(inboundLink.Writer, w)
-			outboundLink.Writer = rate.NewRateLimitWriter(outboundLink.Writer, w)
+			inboundLink.Reader = rate.NewRateLimitReader(inboundLink.Reader, w)
 		}
 		var t *counter.TrafficCounter
 		if c, ok := d.Counter.Load(sessionInbound.Tag); !ok {
@@ -297,7 +297,7 @@ func (d *DefaultDispatcher) Dispatch(ctx context.Context, destination net.Destin
 	} else {
 		go func() {
 			cReader := &cachedReader{
-				reader: outbound.Reader.(*pipe.Reader),
+				reader: outbound.Reader.(buf.TimeoutReader),
 			}
 			outbound.Reader = cReader
 			result, err := sniffer(ctx, cReader, sniffingRequest.MetadataOnly, destination.Network)
