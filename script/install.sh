@@ -8,9 +8,10 @@ plain='\033[0m'
 cur_dir=$(pwd)
 GITHUB_REPO="${V2NODE_GITHUB_REPO:-LOVEYIKANUOSI/v2node}"
 GITHUB_BRANCH="${V2NODE_GITHUB_BRANCH:-main}"
+RELEASE_REPO="${V2NODE_RELEASE_REPO:-wyx2685/v2node}"
 RAW_BASE_URL="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
-RELEASE_BASE_URL="https://github.com/${GITHUB_REPO}/releases/download"
-LATEST_RELEASE_API="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+RELEASE_BASE_URL="https://github.com/${RELEASE_REPO}/releases/download"
+LATEST_RELEASE_API="https://api.github.com/repos/${RELEASE_REPO}/releases/latest"
 
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
@@ -316,15 +317,16 @@ install_v2node() {
     if  [[ -z "$version_param" ]] ; then
         last_version=$(curl -Ls "${LATEST_RELEASE_API}" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
+            echo -e "${yellow}从 ${RELEASE_REPO} 获取 release 版本失败，尝试源码编译安装...${plain}"
             install_from_source "$version_param"
             last_version="source-build"
             version_param="source-build"
         else
-            echo -e "${green}检测到最新版本：${last_version}，开始安装...${plain}"
+            echo -e "${green}检测到 ${RELEASE_REPO} 最新版本：${last_version}，开始安装...${plain}"
             url="${RELEASE_BASE_URL}/${last_version}/v2node-linux-${arch}.zip"
             curl -sL "$url" | pv -s 30M -W -N "下载进度" > /usr/local/v2node/v2node-linux.zip
             if [[ $? -ne 0 ]]; then
-                echo -e "${yellow}下载 release 包失败，改为从源码编译安装...${plain}"
+                echo -e "${yellow}从 ${RELEASE_REPO} 下载 release 包失败，改为源码编译安装...${plain}"
                 install_from_source "$version_param"
                 last_version="source-build"
                 version_param="source-build"
@@ -335,7 +337,7 @@ install_v2node() {
         url="${RELEASE_BASE_URL}/${last_version}/v2node-linux-${arch}.zip"
         curl -sL "$url" | pv -s 30M -W -N "下载进度" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
-            echo -e "${yellow}下载 v2node $1 失败，改为从源码编译安装...${plain}"
+            echo -e "${yellow}从 ${RELEASE_REPO} 下载 v2node $1 失败，改为源码编译安装...${plain}"
             install_from_source "$version_param"
             last_version="source-build"
             version_param="source-build"

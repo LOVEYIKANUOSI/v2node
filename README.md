@@ -20,6 +20,14 @@ export V2NODE_GITHUB_BRANCH="main"
 wget -N https://raw.githubusercontent.com/yourname/v2node/main/script/install.sh && bash install.sh
 ```
 
+如果你的 fork 没有发布 Releases，但你又想复用自己仓库里的安装脚本，脚本会默认从上游 `wyx2685/v2node` 下载二进制包，不会强制进入源码编译。
+
+如果你想手动指定二进制来源，也可以设置：
+
+```bash
+export V2NODE_RELEASE_REPO="wyx2685/v2node"
+```
+
 ## 构建
 ``` bash
 GOEXPERIMENT=jsonv2 go build -v -o build_assets/v2node -trimpath -ldflags "-X 'github.com/wyx2685/v2node/cmd.version=$version' -s -w -buildid="
