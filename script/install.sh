@@ -8,7 +8,7 @@ plain='\033[0m'
 cur_dir=$(pwd)
 GITHUB_REPO="${V2NODE_GITHUB_REPO:-LOVEYIKANUOSI/v2node}"
 GITHUB_BRANCH="${V2NODE_GITHUB_BRANCH:-main}"
-RELEASE_REPO="${V2NODE_RELEASE_REPO:-wyx2685/v2node}"
+RELEASE_REPO="${V2NODE_RELEASE_REPO:-LOVEYIKANUOSI/v2node}"
 RAW_BASE_URL="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
 RELEASE_BASE_URL="https://github.com/${RELEASE_REPO}/releases/download"
 LATEST_RELEASE_API="https://api.github.com/repos/${RELEASE_REPO}/releases/latest"
@@ -182,23 +182,23 @@ install_base() {
             echo "安装 EPEL 源..."
             yum install -y epel-release >/dev/null 2>&1
         fi
-        need_install_yum wget curl unzip tar cronie socat ca-certificates pv git
+        need_install_yum wget curl unzip tar cronie socat ca-certificates pv
         update-ca-trust force-enable >/dev/null 2>&1 || true
     elif [[ x"${release}" == x"alpine" ]]; then
-        need_install_apk wget curl unzip tar socat ca-certificates pv git
+        need_install_apk wget curl unzip tar socat ca-certificates pv
         update-ca-certificates >/dev/null 2>&1 || true
     elif [[ x"${release}" == x"debian" ]]; then
-        need_install_apt wget curl unzip tar cron socat ca-certificates pv git
+        need_install_apt wget curl unzip tar cron socat ca-certificates pv
         update-ca-certificates >/dev/null 2>&1 || true
     elif [[ x"${release}" == x"ubuntu" ]]; then
-        need_install_apt wget curl unzip tar cron socat ca-certificates pv git
+        need_install_apt wget curl unzip tar cron socat ca-certificates pv
         update-ca-certificates >/dev/null 2>&1 || true
     elif [[ x"${release}" == x"arch" ]]; then
         echo "更新包数据库..."
         pacman -Sy --noconfirm >/dev/null 2>&1
         # --needed 会跳过已安装的包，非常高效
         echo "安装必需的包..."
-        pacman -S --noconfirm --needed wget curl unzip tar cronie socat ca-certificates pv git >/dev/null 2>&1
+        pacman -S --noconfirm --needed wget curl unzip tar cronie socat ca-certificates pv >/dev/null 2>&1
     fi
 }
 
@@ -264,47 +264,6 @@ EOF
         fi
 }
 
-install_from_source() {
-    local version_param="$1"
-    echo -e "${yellow}未检测到可用的 release 包，改为从源码编译安装...${plain}"
-    if [[ -e /usr/local/v2node/ ]]; then
-        rm -rf /usr/local/v2node/
-    fi
-    rm -rf /tmp/v2node-src
-    mkdir -p /usr/local/v2node /tmp/v2node-src /root/.cache/v2node
-    cd /tmp/v2node-src
-    git clone --depth 1 --branch "${GITHUB_BRANCH}" "https://github.com/${GITHUB_REPO}.git" repo
-    cd repo
-
-    local go_version="1.26.1"
-    local go_root="/usr/local/go"
-    if [[ ! -x "${go_root}/bin/go" ]] || ! "${go_root}/bin/go" version 2>/dev/null | grep -q "go${go_version}"; then
-        local go_arch="amd64"
-        if [[ "$(uname -m)" == "aarch64" || "$(uname -m)" == "arm64" ]]; then
-            go_arch="arm64"
-        fi
-        curl -L "https://dl.google.com/go/go${go_version}.linux-${go_arch}.tar.gz" -o /tmp/go${go_version}.linux-${go_arch}.tar.gz
-        rm -rf "${go_root}"
-        tar -C /usr/local -xzf /tmp/go${go_version}.linux-${go_arch}.tar.gz
-    fi
-
-    export PATH="${go_root}/bin:${PATH}"
-    export GOEXPERIMENT=jsonv2
-    go mod download
-    local build_version
-    if [[ -n "$version_param" ]]; then
-        build_version="$version_param"
-    else
-        build_version="$(git rev-parse --short HEAD)"
-    fi
-    mkdir -p build_assets
-    go build -v -o /usr/local/v2node/v2node -trimpath -ldflags "-X 'github.com/wyx2685/v2node/cmd.version=${build_version}' -s -w -buildid="
-    chmod +x /usr/local/v2node/v2node
-    mkdir -p /etc/v2node/
-    curl -L https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geoip.dat -o /etc/v2node/geoip.dat
-    curl -L https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat -o /etc/v2node/geosite.dat
-}
-
 install_v2node() {
     local version_param="$1"
     if [[ -e /usr/local/v2node/ ]]; then
@@ -317,19 +276,15 @@ install_v2node() {
     if  [[ -z "$version_param" ]] ; then
         last_version=$(curl -Ls "${LATEST_RELEASE_API}" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
-            echo -e "${yellow}从 ${RELEASE_REPO} 获取 release 版本失败，尝试源码编译安装...${plain}"
-            install_from_source "$version_param"
-            last_version="source-build"
-            version_param="source-build"
+            echo -e "${red}从 ${RELEASE_REPO} 获取 release 版本失败，请先发布 release 后再安装${plain}"
+            exit 1
         else
             echo -e "${green}检测到 ${RELEASE_REPO} 最新版本：${last_version}，开始安装...${plain}"
             url="${RELEASE_BASE_URL}/${last_version}/v2node-linux-${arch}.zip"
             curl -sL "$url" | pv -s 30M -W -N "下载进度" > /usr/local/v2node/v2node-linux.zip
             if [[ $? -ne 0 ]]; then
-                echo -e "${yellow}从 ${RELEASE_REPO} 下载 release 包失败，改为源码编译安装...${plain}"
-                install_from_source "$version_param"
-                last_version="source-build"
-                version_param="source-build"
+                echo -e "${red}从 ${RELEASE_REPO} 下载 release 包失败，请检查 release 资产是否存在${plain}"
+                exit 1
             fi
         fi
     else
@@ -337,10 +292,8 @@ install_v2node() {
         url="${RELEASE_BASE_URL}/${last_version}/v2node-linux-${arch}.zip"
         curl -sL "$url" | pv -s 30M -W -N "下载进度" > /usr/local/v2node/v2node-linux.zip
         if [[ $? -ne 0 ]]; then
-            echo -e "${yellow}从 ${RELEASE_REPO} 下载 v2node $1 失败，改为源码编译安装...${plain}"
-            install_from_source "$version_param"
-            last_version="source-build"
-            version_param="source-build"
+            echo -e "${red}从 ${RELEASE_REPO} 下载 v2node $1 失败，请确认该 release 是否存在${plain}"
+            exit 1
         fi
     fi
 

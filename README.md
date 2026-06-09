@@ -20,12 +20,12 @@ export V2NODE_GITHUB_BRANCH="main"
 wget -N https://raw.githubusercontent.com/yourname/v2node/main/script/install.sh && bash install.sh
 ```
 
-如果你的 fork 没有发布 Releases，但你又想复用自己仓库里的安装脚本，脚本会默认从上游 `wyx2685/v2node` 下载二进制包，不会强制进入源码编译。
+安装脚本默认会从你自己的 fork Releases 下载二进制包，不会在服务器上源码编译。
 
 如果你想手动指定二进制来源，也可以设置：
 
 ```bash
-export V2NODE_RELEASE_REPO="wyx2685/v2node"
+export V2NODE_RELEASE_REPO="LOVEYIKANUOSI/v2node"
 ```
 
 ## Fork 自己发版
@@ -45,7 +45,7 @@ git push origin v0.4.2
 - 创建对应的 GitHub Release
 - 上传 `v2node-linux-64.zip` 等安装脚本需要的二进制文件
 
-这样后续安装脚本也可以直接从你自己的 fork Release 下载，而不必再回退到上游仓库。
+这样后续安装脚本也可以直接从你自己的 fork Release 下载，而且不会再回退到服务器本地编译。
 
 ## 构建
 ``` bash
