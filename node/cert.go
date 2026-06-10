@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -58,7 +59,14 @@ func (c *Controller) requestCert() error {
 			return fmt.Errorf("cert file path or key file path not exist")
 		}
 		if file.IsExist(cert.CertFile) && file.IsExist(cert.KeyFile) {
-			return nil
+			match, err := certMatchesDomain(cert.CertFile, cert.CertDomain)
+			if err != nil {
+				return fmt.Errorf("check self cert domain error: %s", err)
+			}
+			if match {
+				return nil
+			}
+			log.WithField("tag", c.tag).Warnf("self cert domain changed, regenerating cert for %s", cert.CertDomain)
 		}
 		err := generateSelfSslCertificate(
 			cert.CertDomain,
@@ -71,6 +79,31 @@ func (c *Controller) requestCert() error {
 		return fmt.Errorf("unsupported certmode: %s", cert.CertMode)
 	}
 	return nil
+}
+
+func certMatchesDomain(certPath, domain string) (bool, error) {
+	certPEM, err := os.ReadFile(certPath)
+	if err != nil {
+		return false, err
+	}
+	block, _ := pem.Decode(certPEM)
+	if block == nil {
+		return false, fmt.Errorf("decode pem failed")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return false, err
+	}
+	want := strings.TrimSpace(strings.ToLower(domain))
+	if want == "" {
+		return false, nil
+	}
+	for _, dnsName := range cert.DNSNames {
+		if strings.EqualFold(strings.TrimSpace(dnsName), want) {
+			return true, nil
+		}
+	}
+	return strings.EqualFold(strings.TrimSpace(cert.Subject.CommonName), want), nil
 }
 
 func generateSelfSslCertificate(domain, certPath, keyPath string) error {
@@ -92,10 +125,11 @@ func generateSelfSslCertificate(domain, certPath, keyPath string) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(certPath, os.O_CREATE|os.O_RDWR, 0644)
+	f, err := os.OpenFile(certPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	err = pem.Encode(f, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: cert,
@@ -103,12 +137,13 @@ func generateSelfSslCertificate(domain, certPath, keyPath string) error {
 	if err != nil {
 		return err
 	}
-	f, err = os.OpenFile(keyPath, os.O_CREATE|os.O_RDWR, 0644)
+	f, err = os.OpenFile(keyPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	err = pem.Encode(f, &pem.Block{
-		Type:  "EC PRIVATE KEY",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	})
 	if err != nil {
