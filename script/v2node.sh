@@ -310,10 +310,18 @@ show_log() {
 }
 
 update_shell() {
-    wget -O /usr/bin/v2node -N --no-check-certificate "${RAW_BASE_URL}/script/v2node.sh"
+    if ! curl -fLsS -o /usr/bin/v2node "${RAW_BASE_URL}/script/v2node.sh"; then
+        if ! wget -qO /usr/bin/v2node --no-check-certificate "${RAW_BASE_URL}/script/v2node.sh"; then
+            echo ""
+            echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
+            before_show_menu
+        fi
+    fi
+
+    sed -i 's/\r$//' /usr/bin/v2node
     if [[ $? != 0 ]]; then
         echo ""
-        echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
+        echo -e "${red}修复脚本换行失败，请手动执行 sed -i 's/\\r$//' /usr/bin/v2node${plain}"
         before_show_menu
     else
         chmod +x /usr/bin/v2node

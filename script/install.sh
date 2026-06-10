@@ -202,6 +202,21 @@ install_base() {
     fi
 }
 
+install_management_script() {
+    local script_url="${RAW_BASE_URL}/script/v2node.sh"
+
+    if ! curl -fLsS -o /usr/bin/v2node "${script_url}"; then
+        if ! wget -qO /usr/bin/v2node "${script_url}"; then
+            echo -e "${red}下载管理脚本失败，请检查服务器是否可以访问 GitHub Raw${plain}"
+            exit 1
+        fi
+    fi
+
+    # Guard against CRLF line endings so Linux can execute the script directly.
+    sed -i 's/\r$//' /usr/bin/v2node
+    chmod +x /usr/bin/v2node
+}
+
 # 0: running, 1: not running, 2: not installed
 check_status() {
     if [[ ! -f /usr/local/v2node/v2node ]]; then
@@ -401,9 +416,7 @@ EOF
         first_install=false
     fi
 
-
-    curl -o /usr/bin/v2node -Ls "${RAW_BASE_URL}/script/v2node.sh"
-    chmod +x /usr/bin/v2node
+    install_management_script
 
     cd $cur_dir
     rm -f install.sh
